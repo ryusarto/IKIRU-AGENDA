@@ -2,6 +2,12 @@
 
 Painel de produção da IKIRU: agenda semanal e anual, reservas dos **Estúdios A, B e C**, acompanhamento dos artistas e lançamentos.
 
+## Contador do Apocalipse (v5)
+
+O início do painel exibe **TEMPO ATÉ A IKIRU CONSEGUIR SE PAGAR**, com dias, horas, minutos e segundos até **01/07/2027 às 00:00 (horário de São Paulo)**. O horário foi adotado como padrão provisório porque o dia exato em julho ainda não foi especificado. Para alterar o prazo, edite `IKIRU_APOCALYPSE_DEADLINE` em `index.html`.
+
+O contador funciona localmente, não depende do backend e não muda nem remove reservas.
+
 ## Abrir o protótipo
 
 Abra `index.html` no navegador ou publique os arquivos estáticos em uma hospedagem HTTPS.
