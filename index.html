@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#ffffff" />
-<title>IKIRU — Painel de Produção v4</title>
+<title>IKIRU — Painel de Produção v5</title>
 <style>
 :root{--bg:#09090b;--surface:#101013;--surface2:#151519;--surface3:#1d1d22;--edge:#29292f;--text:#f3f2f0;--muted:#85858f;--soft:#b1b1ba;--red:#ef4043;--redDim:rgba(239,64,67,.12);--blue:#78a6f9;--violet:#bda0f5;--green:#8fd6b1;--gold:#e4bc78;--radius:16px;--shadow:0 24px 90px #0009}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--text);background:var(--bg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;letter-spacing:.01em}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}a{color:inherit}::selection{background:#ea393b66}::-webkit-scrollbar{height:9px;width:9px}::-webkit-scrollbar-thumb{background:#37373f;border-radius:20px}::-webkit-scrollbar-track{background:transparent}
@@ -179,6 +179,25 @@ html[data-theme="dark"] .studio-current,html[data-theme="dark"] .studio-current.
 .room-now .room-countdown{grid-column:1;grid-row:2;margin:9px 0 0;font-size:12px}
 .room-now .room-detail{grid-column:1/3;grid-row:3;margin-top:5px}
 }
+
+/* Contagem regressiva da sustentabilidade — destaque inicial minimalista. */
+.apocalypse{border:1px solid var(--edge);border-radius:18px;background:var(--surface);padding:clamp(20px,3vw,34px);margin:0 0 18px;position:relative;overflow:hidden}
+.apocalypse:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--red)}
+.apocalypse-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.apocalypse-kicker{font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--red)}
+.apocalypse-deadline{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.apocalypse h1{font-size:clamp(17px,2.2vw,25px);font-weight:720;letter-spacing:-.038em;line-height:1.25;margin:0 0 20px}
+.apocalypse-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:700px}
+.apocalypse-unit{border-right:1px solid var(--edge);min-width:0;padding:1px 8px 3px 0}
+.apocalypse-unit:last-child{border:0}
+.apocalypse-value{display:block;font-variant-numeric:tabular-nums lining-nums;font-size:clamp(30px,4.8vw,60px);line-height:1;font-weight:720;letter-spacing:-.06em}
+.apocalypse-name{display:block;margin-top:9px;color:var(--muted);font-size:10px;font-weight:650;letter-spacing:.13em;text-transform:uppercase}
+.apocalypse-foot{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;margin-top:20px}
+.apocalypse-mark{display:block;width:6px;height:6px;flex:none;border-radius:50%;background:var(--red)}
+.apocalypse.expired .apocalypse-value{color:var(--red)}
+html[data-theme="light"] .apocalypse{background:#fff;border-color:#e8e8e9}
+html[data-theme="dark"] .apocalypse{background:#131316;border-color:#303035}
+@media(max-width:570px){.apocalypse{padding:20px 17px;border-radius:14px}.apocalypse-top{margin-bottom:12px}.apocalypse h1{font-size:18px;margin-bottom:20px}.apocalypse-grid{gap:8px}.apocalypse-value{font-size:clamp(28px,8vw,42px)}.apocalypse-name{font-size:9px;margin-top:8px}.apocalypse-foot{font-size:10px;margin-top:18px}}
 </style>
 </head>
 <body>
@@ -211,6 +230,8 @@ const TYPE_HINTS={'Projeto IKIRU':'Produção ligada ao catálogo e às entregas
 const STUDIO_IDS=['A','B','C'];
 // Relógio e disponibilidade no fuso real da IKIRU, mesmo quando alguém abre o painel em outra região.
 const STUDIO_TZ='America/Sao_Paulo';
+// Ajuste esta data quando a IKIRU definir o dia exato do prazo de julho de 2027.
+const IKIRU_APOCALYPSE_DEADLINE='2027-07-01T00:00:00-03:00';
 const studioDateFormatter=new Intl.DateTimeFormat('en-GB',{timeZone:STUDIO_TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
 function studioClock(date=new Date()){
  const parts=Object.fromEntries(studioDateFormatter.formatToParts(date).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
@@ -310,14 +331,38 @@ function applyTheme(next){
 function toggleTheme(){applyTheme(theme==='light'?'dark':'light')}
 function navHTML(){let navs=[['dashboard','grid','Início'],['calendar','calendar','Agenda'],['studios','building','Estúdios'],['projects','music','Lançamentos'],['artists','users','Artistas']];return `<div class="brand"><div class="brand-mark">生</div><div><b>IKIRU</b><small>Production system</small></div></div><div><div class="nav-label">ORGANIZAÇÃO</div><nav class="nav">${navs.map(([id,ico,name])=>`<button data-nav="${id}" class="${view.page===id?'active':''}" title="${name}">${icon(ico)}<span class="nav-text">${name}</span></button>`).join('')}</nav></div><div class="sidebar-bottom"><div class="side-label">DADOS & ACESSO</div><div class="side-pill"><b><span class="dot"></span>Salvo neste dispositivo</b>Para acesso de todos em tempo real, o painel precisará ser publicado e conectado a uma base compartilhada.</div><div class="side-tools"><button data-action="export-json">${icon('download',14)} Backup</button><button data-action="import-json">${icon('upload',14)} Restaurar</button></div><div class="side-tools"><button data-action="export-ics">${icon('calendar',14)} Exportar .ics</button><button data-action="about-sync">${icon('info',14)} Compartilhar</button></div></div>`}
 function topHTML(){return `<div><div class="eyebrow">IKIRU / PRODUCTION</div><div class="workspace">Painel de produção</div></div><div class="top-actions"><div class="today-badge">${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div><button type="button" class="btn ghost icon-only theme-switch" id="theme-toggle" data-action="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${icon(theme==='light'?'moon':'sun',18)}</button>${button(`${icon('plus')} Marcar sessão`,'new-event','primary')}</div>`}
-function render(){ $('#sidebar').innerHTML=navHTML();$('#topbar').innerHTML=topHTML();let pages={dashboard:renderDashboard,calendar:renderCalendar,studios:renderStudios,projects:renderProjects,artists:renderArtists};$('#page').innerHTML=(pages[view.page]||renderDashboard)();let scroll=$('#week-scroll')||$('#day-scroll');if(scroll)requestAnimationFrame(()=>{scroll.scrollTop=8*48}) }
+function render(){ $('#sidebar').innerHTML=navHTML();$('#topbar').innerHTML=topHTML();let pages={dashboard:renderDashboard,calendar:renderCalendar,studios:renderStudios,projects:renderProjects,artists:renderArtists};$('#page').innerHTML=(pages[view.page]||renderDashboard)();tickApocalypse();let scroll=$('#week-scroll')||$('#day-scroll');if(scroll)requestAnimationFrame(()=>{scroll.scrollTop=8*48}) }
 function header(title,subtitle,action=''){return `<div class="page-head"><div><div class="kicker">IKIRU / ${view.page==='dashboard'?'HOME':view.page.toUpperCase()}</div><h1>${title}</h1><p>${subtitle}</p></div>${action?`<div class="page-head-actions">${action}</div>`:''}</div>`}
+function apocalypseHTML(){
+ return `<section class="apocalypse" data-apocalypse-clock aria-label="Contagem regressiva para a sustentabilidade da IKIRU">
+  <div class="apocalypse-top"><span class="apocalypse-kicker">IKIRU / CONTADOR DO APOCALIPSE</span><span class="apocalypse-deadline">01 JUL 2027 · 00:00 (SP)</span></div>
+  <h1>TEMPO ATÉ A IKIRU CONSEGUIR SE PAGAR</h1>
+  <div class="apocalypse-grid" role="timer" aria-label="Tempo restante">
+   ${[['days','DIAS'],['hours','HORAS'],['minutes','MINUTOS'],['seconds','SEGUNDOS']].map(([unit,label])=>`<div class="apocalypse-unit"><strong class="apocalypse-value" data-apoc="${unit}">--</strong><span class="apocalypse-name">${label}</span></div>`).join('')}
+  </div>
+  <div class="apocalypse-foot"><span class="apocalypse-mark"></span><span data-apoc-status>Prazo para a IKIRU alcançar a sustentabilidade financeira.</span></div>
+ </section>`;
+}
+function tickApocalypse(now=Date.now()){
+ const panel=document.querySelector('[data-apocalypse-clock]');
+ if(!panel)return;
+ const deadline=Date.parse(IKIRU_APOCALYPSE_DEADLINE),remaining=Math.max(0,Math.ceil((deadline-now)/1000));
+ const values={days:Math.floor(remaining/86400),hours:Math.floor((remaining%86400)/3600),minutes:Math.floor((remaining%3600)/60),seconds:remaining%60};
+ for(const [unit,value] of Object.entries(values)){
+  const target=panel.querySelector(`[data-apoc="${unit}"]`);
+  if(target)target.textContent=unit==='days'?String(value):String(value).padStart(2,'0');
+ }
+ const expired=now>=deadline;
+ panel.classList.toggle('expired',expired);
+ const status=panel.querySelector('[data-apoc-status]');
+ if(status)status.textContent=expired?'O prazo chegou. Atualize a meta de sustentabilidade da IKIRU.':'Prazo para a IKIRU alcançar a sustentabilidade financeira.';
+}
 function renderDashboard(){
  const w1=monday(today),w2=shiftDay(w1,6),week=rangeEvents(w1,w2),todayEvents=rangeEvents(today,today),next=upcomingProjects();
  const focus=[...data.artists].sort((a,b)=>PRIORITIES.indexOf(a.priority)-PRIORITIES.indexOf(b.priority)).slice(0,6);
   const studioToday=STUDIO_IDS.map(renderLiveRoom).join('');
  const weekTypes=TYPES.map(type=>({type,events:week.filter(e=>e.type===type)}));
- return `<div class="hero hero-new"><div class="hero-content"><div class="kicker">IKIRU / CENTRAL DE PRODUÇÃO</div><h1>Um lugar para<br>tudo acontecer.</h1><p>Agenda, estúdios e lançamentos. Toda a operação musical, com clareza.</p><div class="hero-cta">${button(`${icon('plus')} Marcar uma sessão`,'new-event','primary')} ${button(`${icon('calendar')} Ver minha semana`,'goto-calendar','ghost')}</div></div><div class="hero-stamp"><strong>生</strong><span>VIVER A VIDA</span></div></div>
+ return `${apocalypseHTML()}<div class="hero hero-new"><div class="hero-content"><div class="kicker">IKIRU / CENTRAL DE PRODUÇÃO</div><h1>Um lugar para<br>tudo acontecer.</h1><p>Agenda, estúdios e lançamentos. Toda a operação musical, com clareza.</p><div class="hero-cta">${button(`${icon('plus')} Marcar uma sessão`,'new-event','primary')} ${button(`${icon('calendar')} Ver minha semana`,'goto-calendar','ghost')}</div></div><div class="hero-stamp"><strong>生</strong><span>VIVER A VIDA</span></div></div>
  <div class="section-title"><h2>Estúdios hoje</h2><span data-studio-live-clock>São Paulo · ${studioClock().display}</span></div><div class="studio-now-grid">${studioToday}</div>
  <div class="stat-grid compact-stats">
  ${stat('Sessões na semana',String(week.length),'De '+niceDay(w1)+' a '+niceDay(w2),'calendar')}
@@ -385,7 +430,8 @@ $('#import-file').addEventListener('change',async ev=>{let f=ev.target.files?.[0
 try{localStorage.setItem(STORAGE,JSON.stringify(data))}catch(e){}
 render();
 setInterval(tickStudioClock,15000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)tickStudioClock()});
+setInterval(tickApocalypse,1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){tickStudioClock();tickApocalypse()}});
 </script>
 </body>
 </html>
