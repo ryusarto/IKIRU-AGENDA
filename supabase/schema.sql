@@ -1,7 +1,11 @@
--- IKIRU Agenda — fundação PostgreSQL/Supabase (ainda não aplicada).
--- Execute somente depois de revisar as permissões e plano de migração.
+-- IKIRU Agenda — schema deployed to project aifpibaodlsbnmygewox on 2026-11-12.
+-- Do not rerun against an already provisioned database (CREATE TYPE/TABLE would conflict).
 create extension if not exists pgcrypto;
 create extension if not exists btree_gist;
+
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
 
 create type public.ikiru_role as enum ('admin','editor','viewer');
 create type public.ikiru_studio as enum ('A','B','C');
@@ -73,7 +77,7 @@ create table public.ikiru_session_participants (
   primary key(session_id,artist_id)
 );
 
-create or replace function public.ikiru_role_is(allowed public.ikiru_role[])
+create or replace function private.ikiru_role_is(allowed public.ikiru_role[])
 returns boolean language sql stable security definer
 set search_path = ''
 as $$
@@ -82,6 +86,8 @@ as $$
     where m.user_id = (select auth.uid()) and m.active and m.role = any(allowed)
   );
 $$;
+revoke all on function private.ikiru_role_is(public.ikiru_role[]) from public, anon;
+grant execute on function private.ikiru_role_is(public.ikiru_role[]) to authenticated;
 
 create or replace function public.ikiru_touch_record()
 returns trigger language plpgsql set search_path = ''
@@ -107,41 +113,45 @@ alter table public.ikiru_session_participants enable row level security;
 
 create policy "members read own or admin list" on public.ikiru_members
 for select to authenticated using (
- user_id = (select auth.uid()) or public.ikiru_role_is(array['admin']::public.ikiru_role[])
+ user_id = (select auth.uid()) or private.ikiru_role_is(array['admin']::public.ikiru_role[])
 );
 create policy "admins manage members" on public.ikiru_members
 for all to authenticated
-using (public.ikiru_role_is(array['admin']::public.ikiru_role[]))
-with check (public.ikiru_role_is(array['admin']::public.ikiru_role[]));
+using (private.ikiru_role_is(array['admin']::public.ikiru_role[]))
+with check (private.ikiru_role_is(array['admin']::public.ikiru_role[]));
 
 create policy "members read artists" on public.ikiru_artists
-for select to authenticated using (public.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
+for select to authenticated using (private.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
 create policy "editors manage artists" on public.ikiru_artists
 for all to authenticated
-using (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
-with check (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
+using (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
+with check (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
 
 create policy "members read projects" on public.ikiru_projects
-for select to authenticated using (public.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
+for select to authenticated using (private.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
 create policy "editors manage projects" on public.ikiru_projects
 for all to authenticated
-using (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
-with check (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
+using (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
+with check (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
 
 create policy "members read sessions" on public.ikiru_sessions
-for select to authenticated using (public.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
+for select to authenticated using (private.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
 create policy "editors manage sessions" on public.ikiru_sessions
 for all to authenticated
-using (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
-with check (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
+using (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
+with check (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
 
 create policy "members read participants" on public.ikiru_session_participants
-for select to authenticated using (public.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
+for select to authenticated using (private.ikiru_role_is(array['admin','editor','viewer']::public.ikiru_role[]));
 create policy "editors manage participants" on public.ikiru_session_participants
 for all to authenticated
-using (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
-with check (public.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
+using (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]))
+with check (private.ikiru_role_is(array['admin','editor']::public.ikiru_role[]));
 
 -- Não crie um usuário admin via formulário público.
 -- O primeiro admin deve ser atribuído por um operador confiável usando ambiente administrativo.
 -- Não exponha a service_role key no frontend.
+
+-- Access to the Data API is granted only to authenticated users; RLS decides which records are available.
+revoke all on public.ikiru_members, public.ikiru_artists, public.ikiru_projects, public.ikiru_sessions, public.ikiru_session_participants from public, anon;
+grant select, insert, update, delete on public.ikiru_members, public.ikiru_artists, public.ikiru_projects, public.ikiru_sessions, public.ikiru_session_participants to authenticated;
